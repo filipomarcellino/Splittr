@@ -213,3 +213,64 @@ describe("Functional tests for signup and login from authRouter.js", function ()
     (res2.body.length - res5.body.length).should.equal(1);
   });
 });
+describe("Tests for requests (from dashboardRouter.js)", function () {
+  var senderId;
+  var receiverId;
+
+  it("should send a request", async () => {
+    await chai.request(server).post(`/auth/signup`).send({
+      name: "testSender",
+      username: "testSender",
+      email: "testSender@gmail.com",
+      password: "testSender"
+    });
+    await chai.request(server).post(`/auth/signup`).send({
+      name: "testReceiver",
+      username: "testReceiver",
+      email: "testReceiver@gmail.com",
+      password: "testReceiver"
+    });
+    //checking if the user is in the database and matching the credentials
+    var res3 = await chai.request(server).post(`/profile/get/userInfo`).send({
+      username: "testSender"
+    });
+    var res4 = await chai.request(server).post(`/profile/get/userInfo`).send({
+      username: "testReceiver"
+    });
+    //getting the user id of user 1 and user 2
+    senderId = res3.body.userid;
+    receiverId = res4.body.userid;
+    // calling the /sendRequest
+    var res5 = await chai
+      .request(server)
+      .post(`/dashboard/sendRequest`)
+      .send({
+        title: "testRequest",
+        userid: senderId,
+        senderid: senderId,
+        receiverids: [receiverId],
+        amount: 45.44,
+        eventdate: new Date(2022, 7, 1)
+      });
+    await new Promise((r) => setTimeout(r, 1000));
+    //checking if the created requests exists in both the sender table and receiver table
+    var res6 = await chai.request(server).post(`/getUserData/${senderId}`);
+    var res7 = await chai.request(server).post(`/getUserData/${receiverId}`);
+    console.log("res 6:", res6.body);
+    console.log("res 7:", res7.body);
+    res6.body[0].title.should.equal("testRequest");
+    res7.body[0].title.should.equal("testRequest");
+  });
+  it("should delete 2 users from the database", async () => {
+    var res2 = await chai.request(server).get("/api/users");
+    var res3 = await chai
+      .request(server)
+      .post(`/admindata/delete/user/${senderId}`);
+    var res6 = await chai
+      .request(server)
+      .post(`/admindata/delete/user/${receiverId}`);
+    var res4 = await chai.request(server).get("/api/users");
+    var res5 = await chai.request(server).get("/api/users");
+    (res2.body.length - res5.body.length).should.equal(2);
+  });
+});
