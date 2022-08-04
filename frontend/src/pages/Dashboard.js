@@ -15,6 +15,10 @@ import PopUpForm from "../components/admin/PopUpForm";
 // import Component31 from '../components/dashboard/component31';
 
 const Dashboard = () => {
+
+  const userid = localStorage.getItem("userKey");
+
+
   const [state, setState] = useState(true);
   const [hover, setHover] = useState(false);
   const [visibility, setVisibility] = useState(false);
@@ -200,7 +204,7 @@ const Dashboard = () => {
               <strong>Request ID </strong>
               <p>{reqid}</p>
 
-              <strong>Paid Users</strong>
+              {(typeof(unpaid[0]) != "boolean" || unpaid[0] == true)? <strong>Paid Users</strong> : <strong>Sent By User</strong>}
               {paid ? (
                 <div>
                   {paid.map((item) => (
@@ -211,7 +215,7 @@ const Dashboard = () => {
                 <p>None Paid User</p>
               )}
 
-              <strong>Unpaid Users</strong>
+              {(typeof(unpaid[0]) != "boolean") && <strong>Unpaid Users</strong>}
               {unpaid ? (
                 <div>
                   {unpaid.map((item) => (

@@ -6,7 +6,7 @@ function Component21(props) {
   const [data, setData] = useState([]);
   const [names, setNames] = useState({});
 
-  var userid = localStorage.getItem("userKey");
+  const userid = localStorage.getItem("userKey");
 
   const apiGet = async () => {
     await axios
@@ -56,7 +56,7 @@ function Component21(props) {
               
               props.passPaidUnPaid(
                     item.receiverid.split(", "),
-                    null
+                    [item.req_sent]
                   )
 
             }}> view more </a>

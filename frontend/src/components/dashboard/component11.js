@@ -5,6 +5,8 @@ import axios from "axios";
 const Component11 = (props) => {
   const [sent, setSent] = useState(0);
   const [receive, setReceive] = useState(0);
+  const [name, setName] = useState(0);
+
   const username = localStorage.getItem("username");
   const userid = localStorage.getItem("userKey");
 
@@ -14,6 +16,7 @@ const Component11 = (props) => {
       .then((res) => {
         setSent(res.data.sent);
         setReceive(res.data.receive);
+        setName(res.data.name);
       })
       .catch((err) => {
         console.log(err);
@@ -33,7 +36,7 @@ const Component11 = (props) => {
       <div className="userinfo">
         <div className="username placeholder ">
           <h2>Welcome</h2>
-          <h2 style={{textAlign:"center", width:"100%", marginTop:"25px"}}>{username}</h2>
+          <h2 style={{textAlign:"center", width:"100%", marginTop:"25px"}}>{name}</h2>
         </div>
 
         <div className="placeholder receive">
