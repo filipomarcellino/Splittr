@@ -2,8 +2,9 @@
 const path = require("path");
 const express = require("express");
 const bodyParser = require("body-parser");
-const stripe = require("stripe")('sk_test_51LQ5kqFl5V6uZIiCOf8WtvaDjLmtTKfu3VltveuO8deIjRrffUDYncu9kSgHrkHJXbwBdQzmfAccqdsbL8UVRF7300O5yya8pf');
-
+const stripe = require("stripe")(
+  "sk_test_51LQ5kqFl5V6uZIiCOf8WtvaDjLmtTKfu3VltveuO8deIjRrffUDYncu9kSgHrkHJXbwBdQzmfAccqdsbL8UVRF7300O5yya8pf"
+);
 
 //routers and endpoints
 const userRoute = require("./routers/authRouter");
@@ -40,10 +41,10 @@ app.post("/adduser", (req, res) => {
 });
 
 app.post("/generateUserTable", async (req, res) => {
-  var result = await queries.generateUserTable(req, res);
+  res.json(await queries.generateUserTable(req, res));
 });
 
-app.post("/closerequest/:reqid")
+app.post("/closerequest/:reqid");
 
 app.post("/getUserData/:userid", (req, res) => {
   queries.getUserData(req, res);
@@ -57,12 +58,12 @@ app.post("/resetPassword", (req, res) => {
   queries.resetPassword(req, res);
 });
 
-app.use('/auth', userRoute);
-app.use('/admindata', adminRoute);
-app.use('/email', emailRoute);
-app.use('/profile', profileRoute);
-app.use('/dashboard', dashboardRoute);
-app.use('/request', requestRoute);
+app.use("/auth", userRoute);
+app.use("/admindata", adminRoute);
+app.use("/email", emailRoute);
+app.use("/profile", profileRoute);
+app.use("/dashboard", dashboardRoute);
+app.use("/request", requestRoute);
 //post
 /*
  app.post('/api/data', (req, res) => {
@@ -87,29 +88,28 @@ app.use("/admindata", adminRoute);
 //Stripe stuff
 
 app.post("/create-payment-intent", async (req, res) => {
-  const { amount} = req.body;
+  const { amount } = req.body;
 
   console.log(amount);
   // Create a PaymentIntent with the order amount and currency
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: amount*100,
-    currency: 'usd',
+    amount: amount * 100,
+    currency: "usd",
     automatic_payment_methods: {
       enabled: true
-    },
+    }
 
-   // payment_method: '{{CARD_ID}}'
+    // payment_method: '{{CARD_ID}}'
   });
   console.log("payment Intent is: " + paymentIntent.amount);
   console.log("client secret is: " + paymentIntent.client_secret);
   res.send({
-    clientSecret: paymentIntent.client_secret,
+    clientSecret: paymentIntent.client_secret
   });
 });
 
-
 app.get("*", (req, res) => {
-  res.sendFile(path.join(publicPath, 'index.html'));
+  res.sendFile(path.join(publicPath, "index.html"));
 });
 
 //listen

@@ -8,20 +8,20 @@ const bcrypt = require("bcrypt");
 const createUser = (request, response) => {
   const { username, password, name, email } = request.body;
 
-    return new Promise(function (resolve, reject) {
-        pool.query(
-            "INSERT INTO loginauth (username, password, nickname, email) VALUES ($1, $2, $3, $4) RETURNING *",
-            [username, password, name, email], (error, results) => {
-                if (error) {
-                    return reject(error);
-                }
-                response.status(200);
-                resolve(results);
-            }
-        )
-    })
-}
-
+  return new Promise(function(resolve, reject) {
+    pool.query(
+      "INSERT INTO loginauth (username, password, nickname, email) VALUES ($1, $2, $3, $4) RETURNING *",
+      [username, password, name, email],
+      (error, results) => {
+        if (error) {
+          return reject(error);
+        }
+        response.status(200);
+        resolve(results);
+      }
+    );
+  });
+};
 
 // generates an empty user table
 const generateUserTable = async (request) => {

@@ -6,6 +6,7 @@
     "node": "16.x"
   },
   "scripts": {
+    "test": "mocha --timeout 10000",
     "client": "npm start --prefix frontend",
     "server": "node ./backend/server.js",
     "heroku-postbuild": "cd ./frontend && npm run build",
