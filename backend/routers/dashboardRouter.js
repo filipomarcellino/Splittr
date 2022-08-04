@@ -119,7 +119,17 @@ router.get("/history/:id", async (req, res) => {
       "user".concat(req.params.id)
     )
   );
+  await pool.query(
+    format(
+      "ALTER TABLE %I ADD COLUMN IF NOT EXISTS close_date TIMESTAMP",
+      "user".concat(req.params.id)
+    )
+  );
   query.viewAllClosedRequests(req, res);
+});
+
+router.get("/getInfo/:userid", async (req, res) => {
+  query.requestInfo(req, res);
 });
 
 module.exports = router;

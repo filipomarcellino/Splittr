@@ -94,7 +94,7 @@ const Login = () => {
               <input
                 type="text"
                 name="username"
-                placeholder="Email or Username"
+                placeholder="Username"
                 ref={userRef}
                 autoComplete="off"
                 onChange={(e) => setUser(e.target.value)}
@@ -120,16 +120,6 @@ const Login = () => {
                 onClick={() => (window.location.href = "/signup")}
               />
 
-              <a
-                href="/login"
-                style={{
-                  fontSize: "14px",
-                  alignSelf: "flex-end",
-                  marginTop: "30px",
-                }}
-              >
-                forget your password?
-              </a>
             </div>
           </form>
         </div>

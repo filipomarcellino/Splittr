@@ -306,7 +306,7 @@ describe("Tests for requests (from dashboardRouter.js)", function() {
         senderid: senderId,
         receiverids: [receiverId],
         amount: 45.44,
-        eventdate: new Date(2022, 7, 1)
+        eventdate: "2022-07-12"
       });
     await new Promise((r) => setTimeout(r, 1000));
     //checking if the created requests exists in both the sender table and receiver table

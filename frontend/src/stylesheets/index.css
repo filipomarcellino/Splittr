@@ -26,7 +26,7 @@ body {
 
 .border {
   border-radius: 25px;
-  border: 1px solid silver;
+  box-shadow: 0 0 5px var(--background-color);
 }
 
 .margin-bottom {

@@ -14,6 +14,12 @@ const Nickname = (props) => {
       input,
       id: props.id,
     };
+
+    if(!input || input==""){
+      props.setMssg("Nickname cannot be empty");
+      props.setErr(true);
+      return
+    }
     console.log(input);
     console.log(props.id);
     await axios

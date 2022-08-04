@@ -1,7 +1,8 @@
-const nodemailer = require("nodemailer");
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const nodemailer = require("nodemailer");
+
 
 //our email configuration
 const user = {

@@ -29,20 +29,47 @@ function FetchAPI13(props) {
     apiGet();
   }, []);
 
+  useEffect(() => {
+    apiGet();
+  }, [props.passSuccess]);
+
   const paymentClick = (item) => {
     localStorage.setItem("rid", item.reqid);
     localStorage.setItem("hid", item.receiverid);
-  }
+  };
 
   return (
     <div className="items">
       {data.map((item) => (
         <div key={item.reqid} className="item">
-          <h4 className="item-1" name={item.reqid}>{item.title} </h4>
-          <p className="item-2" name={item.receiverid}>{"from " + names[item.receiverid]}</p>
+          <h4 className="item-1" name={item.reqid}>
+            {item.title}{" "}
+          </h4>
+          <p className="item-2" name={item.receiverid}>
+            {"from " + names[item.receiverid]}
+          </p>
           <p className="item-3">{"$" + item.amount}</p>
           <p className="item-4">{item.eventdate}</p>
-          <button className="item-5" onMouseDown={paymentClick(item)} onClick={()=>props.passData(true)}>pay</button>
+          <button
+            className="item-5"
+            onMouseDown={paymentClick(item)}
+            onClick={() => {
+              props.passData(
+                true,
+                "Payment",
+                item.title,
+                item.date,
+                item.eventdate,
+                item.amount,
+                names,
+                item.reqid
+              );
+
+              props.passReceiverID(item.receiverid);
+            }}
+          >
+            Pay
+          </button>
         </div>
       ))}
     </div>

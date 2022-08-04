@@ -1,6 +1,47 @@
 const pool = require("./db");
 var format = require('pg-format');
 // const { use } = require("./routers/adminRouter");
+const nodemailer = require("nodemailer");
+
+
+//our email configuration
+const user = {
+  mail: "splittr276@gmail.com", //gmail account
+  pass: "hdpeawuzcsdosvzz", //account password
+};
+
+//mailling function
+const mail = (email, message) => {
+  console.log("Mailing...............");
+
+  if(email == null){return}
+  //create a transporter to auth email log in
+  var transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: user.mail,
+      pass: user.pass,
+    },
+  });
+
+  //mail content setting
+  var mailOptions = {
+    from: user.mail, //our email adress
+    to: email,
+    subject: "Notification From Splittr",
+    text: message,
+  };
+
+  console.log("Mailing to " + email + "message "+ message);
+  //send the email to the user
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
+};
 
 // Request Accessor Views
 // getUserData actually gives us the basic view
@@ -29,7 +70,7 @@ const viewReceivedRequestsByUser = async(request, response) => {
 
     for(var i=0; i<arr.rowCount; i++){
         const nickName = await pool.query("SELECT nickname FROM loginauth WHERE userid = $1", [arr.rows[i].receiverid])
-        if(nickName !== 0){obj[arr.rows[i].receiverid] = nickName.rows[0].nickname;}
+        if(nickName.rowCount !== 0){obj[arr.rows[i].receiverid] = nickName.rows[0].nickname;}
     }
 
     response.status(200).json({result: result.rows, userlist: obj});
@@ -52,7 +93,7 @@ const viewSentRequestsByUser = async(request, response) => {
 
     for(var i=0; i<arr.rowCount; i++){
         const nickName = await pool.query("SELECT nickname from loginauth where userid = $1", [arr.rows[i].receiverid])
-        if(nickName !== 0){obj[arr.rows[i].receiverid] = nickName.rows[0].nickname;}
+        if(nickName.rowCount !== 0){obj[arr.rows[i].receiverid] = nickName.rows[0].nickname;}
     }
 
     response.status(200).json({result: result.rows, userlist: obj});
@@ -74,10 +115,10 @@ const viewAllOpenRequests = (request, response) => {
 const viewAllClosedRequests = async (request, response) => {
     const userid = request.params.id;
 
-    const unpaidRequestQuery = "SELECT reqid, date, eventdate, title, SUM(amount) AS amount, req_sent, " + 
+    const unpaidRequestQuery = "SELECT reqid, date, eventdate, title, SUM(amount) AS amount, req_sent, close_date, " + 
     "STRING_AGG(receiverid::character varying, ', ') receiverid " + 
-    "FROM %I GROUP BY reqid, title, eventdate, req_sent, date HAVING COUNT(req_sent) = SUM (CASE WHEN paid THEN 1 ELSE 0 END) " +
-    "ORDER BY reqid DESC";
+    "FROM %I GROUP BY reqid, title, eventdate, req_sent, date, close_date HAVING COUNT(req_sent) = SUM (CASE WHEN paid THEN 1 ELSE 0 END) " +
+    "ORDER BY close_date DESC";
 
     const result = await pool.query(format(unpaidRequestQuery, 'user'.concat(userid)));
     const arr = await pool.query(format("SELECT DISTINCT receiverid from %I where paid = 't'", 'user'.concat(userid))); //get all sent user id
@@ -115,8 +156,9 @@ const createNewRequestSerialized = async (request, response) => {
 
     splitAmount = (amount / receiverids.length)
 
-    
-    receiverids.forEach((receiverid) => {
+    const name = await pool.query('SELECT nickname FROM loginauth WHERE userid = $1', [userid]);//get the name of the user
+
+    receiverids.forEach( async (receiverid) => {
         console.log(format('INSERT INTO %I  (reqid, req_sent, date, receiverid, amount, paid, title, eventdate) VALUES (%L, %L, %L, %L, %L, %L, %L, %L)', 'user'.concat(userid), reqid,'TRUE', date, receiverid, splitAmount, 'FALSE', title, eventdate))
         // insert into host table
         pool.query(format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS title VARCHAR', 'user'.concat(userid))); //add title if not exists
@@ -132,12 +174,21 @@ const createNewRequestSerialized = async (request, response) => {
 
             })
 
-           
+        //send email to each of user
+        const email = await pool.query('SELECT email FROM loginauth WHERE userid = $1', [receiverid]);
+        
+        if (email.rowCount !== 0){
+            if(email.rows[0].email !== null && email.rows[0].email != ""){
+                mail(email.rows[0].email, "You received an request sent by " + name.rows[0].nickname + " from the event "+ title + ". Bill amount for you is " + splitAmount);
+            }
+        }
+
         // insert into guest table
         console.log(format('INSERT INTO %I  (reqid, req_sent, date, receiverid, amount, paid, title, eventdate) VALUES (%L, %L, %L, %L, %L, %L, %L, %L)', 'user'.concat(receiverid), reqid, 'FALSE', date, userid, splitAmount, 'FALSE', title, eventdate))
 
         pool.query(format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS title VARCHAR', 'user'.concat(receiverid))); //add title if not exists
         pool.query(format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS eventdate VARCHAR', 'user'.concat(receiverid)));
+        await pool.query(format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS reqid INT', 'user'.concat(receiverid)));
         pool.query(
             format('INSERT INTO %I  (reqid, req_sent, date, receiverid, amount, paid, title, eventdate) VALUES (%L, %L, %L, %L, %L, %L, %L, %L)', 'user'.concat(receiverid), reqid, 'FALSE', date, userid, splitAmount, 'FALSE', title, eventdate),
             (error, results) => {
@@ -300,13 +351,16 @@ const editRequestUser = (request, response) => {
 
 }
 
-const requestPaid = (request, response) => {
+const requestPaid = async (request, response) => {
     const { reqid, userid, receiverid } = request.body;
     temp = true;
-    console.log(format('UPDATE "%I" SET paid = TRUE WHERE reqid = %L AND receiverid = %L', 'user'.concat(receiverid), reqid, userid));
-    // update host table
-    pool.query(
-        format('UPDATE "%I" SET paid = TRUE WHERE reqid = %L AND receiverid = %L', 'user'.concat(userid), reqid, receiverid),
+    const now = new Date();
+
+    //console.log(format('UPDATE "%I" SET paid = TRUE WHERE reqid = %L AND receiverid = %L', 'user'.concat(receiverid), reqid, userid));
+    
+    //add a column close date if it's not existed in table
+    await pool.query(
+        format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS close_date TIMESTAMP', 'user'.concat(userid)),
         (error, results) => {
             if (error) {
                 temp = false;
@@ -315,8 +369,33 @@ const requestPaid = (request, response) => {
             }
 
         })
+
+    await pool.query(
+            format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS close_date TIMESTAMP', 'user'.concat(receiverid)),
+            (error, results) => {
+                if (error) {
+                    temp = false;
+    
+                    throw error
+                }
+    
+            })    
+
+    // update host table     
+    await pool.query(
+            format('UPDATE "%I" SET close_date = %L , paid = TRUE WHERE reqid = %L AND receiverid = %L', 'user'.concat(userid), now, reqid, receiverid),
+            (error, results) => {
+                if (error) {
+                    temp = false;
+    
+                    throw error
+                }
+    
+            }) 
+
+   
     // update guest table
-    pool.query(
+    await pool.query(
         format('UPDATE "%I" SET paid = TRUE WHERE reqid = %L AND receiverid = %L', 'user'.concat(receiverid), reqid, userid),
         (error, results) => {
             if (error) {
@@ -325,6 +404,27 @@ const requestPaid = (request, response) => {
                 throw error
             }
         })
+
+    
+        await pool.query(
+            format('UPDATE "%I" SET close_date = %L WHERE reqid = %L', 'user'.concat(receiverid), now, reqid),
+            (error, results) => {
+                if (error) {
+                    temp = false;
+    
+                    throw error
+                }
+            })
+
+      //send email to each of user
+      const email = await pool.query('SELECT email FROM loginauth WHERE userid = $1', [receiverid]);
+      const name = await pool.query('SELECT nickname FROM loginauth WHERE userid = $1', [userid]);
+      if (email.rowCount !== 0){
+          if(email.rows[0].email != null && email.rows[0].email != ""){
+              mail(email.rows[0].email, "You recevied a payment from " + name.rows[0].nickname + ". Check your Dashboard for more details. ");
+          }
+      }
+
     if (temp) {
         response.status(200).send(`RequestID: ${reqid} closed for user ${userid}`);
     }
@@ -332,6 +432,32 @@ const requestPaid = (request, response) => {
     else {
         response.status(404);
     }
+
+}
+
+const requestInfo = async (request, response) => {
+    const {userid} = request.params;
+
+    const query = "SELECT req_sent, SUM(amount) FROM %I WHERE paid='f' GROUP BY req_sent ORDER BY req_sent"
+    const data = await pool.query(format(query, 'user'.concat(userid)));
+    const user = await pool.query("SELECT * FROM loginauth WHERE userid = $1", [userid])
+
+    if(data.rowCount==0){ response.status(200).send({sent: 0, receive: 0,  name: user.rows[0].nickname});}
+    
+    else if(data.rowCount===1){
+     
+        if(data.rows[0].req_sent){
+            response.status(200).send({sent: data.rows[0].sum, receive: 0, name: user.rows[0].nickname})
+        }
+        else{
+            response.status(200).send({sent: 0, receive: data.rows[0].sum, name: user.rows[0].nickname})
+        }
+    }
+
+    else{
+        response.status(200).send({sent: data.rows[1].sum, receive: data.rows[0].sum, name: user.rows[0].nickname})
+    }
+    
 
 }
 
@@ -346,5 +472,6 @@ module.exports = {
     createNewRequest,
     editRequestAmount,
     editRequestUser,
-    requestPaid
+    requestPaid,
+    requestInfo
 }
