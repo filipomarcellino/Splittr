@@ -80,7 +80,7 @@ describe("Unit tests for modifying users (show, add, delete, update)", function(
     res.body[0].nickname.should.equal("testUser");
   });
 
-  it("should udpate user nickname", async () => {
+  it("should update user nickname", async () => {
     var res = await chai
       .request(server)
       .post(`/admindata/modify/nickname`)
@@ -261,7 +261,7 @@ describe("Tests for requests (from dashboardRouter.js)", function() {
   var receiverId;
   var reqId;
 
-  it("should send a request", async () => {
+  it("should create a request", async () => {
     await chai
       .request(server)
       .post(`/auth/signup`)
